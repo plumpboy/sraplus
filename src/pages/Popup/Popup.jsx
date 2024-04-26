@@ -2,9 +2,17 @@ import { useEffect, useState } from 'react';
 import React from 'react';
 import logo from '../../assets/img/logo.svg';
 import './Popup.css';
-import { getUserData } from '../../api/sra';
+import {
+  getTypeOfWork,
+  fetchLogData,
+  postWorkLogs,
+  getProjects,
+} from '../../api/sra';
 const Popup = () => {
   const [localStorageData, setLocalStorageData] = useState(null);
+  const [typeOfWorkData, setTypeOfWorkData] = useState([]);
+  const [workType, setWorkType] = useState(null);
+  const [projectData, setProjectData] = useState([]);
 
   useEffect(() => {
     chrome.tabs.query(
@@ -12,27 +20,117 @@ const Popup = () => {
       async function (tabs) {
         console.log('tab', tabs);
         const fromPageLocalStore = await chrome.scripting.executeScript({
-          target: { tabId: tabs[0].id, allFrames: true },
+          target: { tabId: tabs[0].id },
           function() {
-            return localStorage['accessToken'];
+            return Object.entries(localStorage);
           },
         });
-        // const fromPageLocalStore = await chrome.tabs.executeScript(tabs[0].id, {
-        //   code: `localStorage['accessToken']`,
-        // });
-        console.log('fromPageLocalStore', fromPageLocalStore);
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { method: 'getLocalStorage', key: 'accessToken' },
-          function (response) {
-            console.log('response', response);
-            setLocalStorageData(response.data);
-          }
+
+        const localStorageData = fromPageLocalStore?.[0]?.result?.reduce(
+          (acc, [key, value]) => {
+            // Check if value is a valid JSON
+            try {
+              const parsedValue = JSON.parse(value);
+              return { ...acc, [key]: parsedValue };
+            } catch (e) {
+              // If not a valid JSON, return the original value
+              return { ...acc, [key]: value };
+            }
+          },
+          {}
         );
+        console.log('localStorageData', localStorageData);
+        setLocalStorageData(localStorageData);
       }
     );
-    getUserData().then((data) => console.log(data));
   }, []);
+
+  useEffect(() => {
+    if (localStorageData?.accessToken) {
+      getTypeOfWork(localStorageData.accessToken).then((data) => {
+        setTypeOfWorkData(data.typeOfWorks);
+        setWorkType(data.typeOfWorks[0].id);
+      });
+
+      getProjects(localStorageData.accessToken, {
+        userId: localStorageData?.userData?.id,
+        date: new Date().toISOString().split('T')[0],
+      }).then((data) => {
+        console.log(data);
+        setProjectData(data);
+      });
+    }
+  }, [localStorageData]);
+
+  const handleClick = async () => {
+    const date = new Date();
+    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 2);
+    const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    console.log('firstDayOfMonth', firstDayOfMonth, lastDayOfMonth);
+    // If you need the dates in 'yyyy-MM-dd' format
+    const startDate = firstDayOfMonth.toISOString().split('T')[0];
+    const endDate = lastDayOfMonth.toISOString().split('T')[0];
+    // TODO: Call API get timesheet overview
+    const timesheetOverview = await fetchLogData(localStorageData.accessToken, {
+      username: localStorageData?.userData?.username,
+      startDate,
+      endDate,
+    });
+
+    console.log('timesheetOverview', timesheetOverview);
+
+    // TODO: Process data and create work logs list
+    const workLogsList = timesheetOverview.timesheetOverview.filter((log) => {
+      return (
+        log.isWeekend === false &&
+        log.isHoliday === false &&
+        log.allocated?.totalHours > 0 &&
+        (!log.workLogs || log.workLogs?.totalHours < log.allocated?.totalHours)
+      );
+    });
+
+    console.log('workLogsList', workLogsList);
+
+    const workLogsListFilter = [];
+    for (let i = 0; i < workLogsList.length; i++) {
+      for (let j = 0; j < workLogsList?.[i]?.allocated?.detail?.length; j++) {
+        workLogsListFilter.push({
+          ...workLogsList[i].allocated.detail[j],
+          date: workLogsList[i].date,
+        });
+      }
+    }
+
+    console.log('workLogsListFilter', workLogsListFilter);
+
+    const workLogsData = workLogsListFilter.map((log) => {
+      return {
+        date: log.date,
+        description: null,
+        workHours: log.hours,
+        typeOfWork: workType,
+        projectId: projectData.find((project) => project.code === log.code).id,
+      };
+    });
+    console.log('workLogsData', workLogsData);
+
+    if (workLogsData.length) {
+      // TODO: Call API post work logs
+      postWorkLogs(localStorageData.accessToken, {
+        workLogs: workLogsData,
+      }).then((data) => {
+        console.log('data', data);
+      });
+    }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      chrome.tabs.update(tabs[0].id, { url: tabs[0].url });
+    });
+  };
+
+  const handleWorkTypeChange = (event) => {
+    setWorkType(event.target.value);
+  };
 
   return (
     <div className="App">
@@ -41,34 +139,22 @@ const Popup = () => {
           <p>SRA++</p>
         </div>
         <div>
-          <fieldset>
-            <legend>Log by</legend>
-            <input
-              type="radio"
-              id="allocated"
-              name="logType"
-              value="allocated"
-              defaultChecked={true}
-            />
-            <label htmlFor="allocated">Allocated</label>
-            <br />
-            <input
-              type="radio"
-              id="attendance"
-              name="logType"
-              value="attendance"
-            />
-            <label htmlFor="attendance">Attendance</label>
-          </fieldset>
-          {/* <fieldset>
-            <legend>Log Range</legend>
-            <input type="radio" id="week" name="logRange" value="week" />
-            <label htmlFor="week">Week</label>
-            <br />
-            <input type="radio" id="month" name="logRange" value="month" />
-            <label htmlFor="month">Month</label>
-          </fieldset> */}
-          <input className="log-button" type="button" value="Log" />
+          <label htmlFor="workType">Type of Work: </label>
+          <select
+            id="workType"
+            name="workType"
+            value={workType}
+            onChange={handleWorkTypeChange}
+          >
+            {typeOfWorkData.map((typeOfWork) => (
+              <option key={typeOfWork.id} value={typeOfWork.id}>
+                {typeOfWork.name}
+              </option>
+            ))}
+          </select>
+          <button className="log-button" type="button" onClick={handleClick}>
+            Log
+          </button>
         </div>
       </header>
     </div>

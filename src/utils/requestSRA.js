@@ -19,19 +19,19 @@ function requestSRA() {
   // axios.defaults.headers.common['sec-fetch-site'] = 'same-site';
   // axios.defaults.headers.common['user-agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0';
 
-  axios.interceptors.request.use(request => {
-    let token = localStorage.getItem('accessToken');
+  // axios.interceptors.request.use(request => {
+  //   let token = localStorage.getItem('accessToken');
 
-    console.log('token', token);
+  //   console.log('token', token);
 
-    if (!!token) {
-      request.headers.common['Authorization'] = `Bearer ${token}`
-    }
+  //   if (!!token) {
+  //     request.headers.common['Authorization'] = `Bearer ${token}`
+  //   }
 
-    return request
-  }, (error) => console.log(error), {
-    synchronous: true
-  })
+  //   return request
+  // }, (error) => console.log(error), {
+  //   synchronous: true
+  // })
 
   return axios
 }
