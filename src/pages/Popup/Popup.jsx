@@ -13,6 +13,13 @@ const Popup = () => {
   const [typeOfWorkData, setTypeOfWorkData] = useState([]);
   const [workType, setWorkType] = useState(null);
   const [projectData, setProjectData] = useState([]);
+  const currentDate = new Date();
+  const currentMonth =
+    currentDate.getFullYear() +
+    '-' +
+    ('0' + (currentDate.getMonth() + 1)).slice(-2);
+  console.log('currentMonth', currentMonth);
+  const [month, setMonth] = useState(currentMonth);
 
   useEffect(() => {
     chrome.tabs.query(
@@ -63,7 +70,7 @@ const Popup = () => {
   }, [localStorageData]);
 
   const handleClick = async () => {
-    const date = new Date();
+    const date = new Date(`${month}-02T00:00:00`);
     const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 2);
     const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
     console.log('firstDayOfMonth', firstDayOfMonth, lastDayOfMonth);
@@ -132,6 +139,11 @@ const Popup = () => {
     setWorkType(event.target.value);
   };
 
+  const handleMonthChange = (event) => {
+    console.log('handleMonthChange', event.target.value);
+    setMonth(event.target.value);
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -139,6 +151,16 @@ const Popup = () => {
           <p>SRA++</p>
         </div>
         <div>
+          <label htmlFor="month">Month: </label>
+          <input
+            id="work-month"
+            type="month"
+            name="work-month"
+            value={month}
+            onChange={handleMonthChange}
+          />
+          <br />
+          <br />
           <label htmlFor="workType">Type of Work: </label>
           <select
             id="workType"
@@ -152,8 +174,9 @@ const Popup = () => {
               </option>
             ))}
           </select>
+          <br />
           <button className="log-button" type="button" onClick={handleClick}>
-            Log
+            Log work
           </button>
         </div>
       </header>
