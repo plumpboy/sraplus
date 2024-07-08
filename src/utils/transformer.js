@@ -117,7 +117,12 @@ export default class Transformer {
    * @param replaceStr String
    * @returns {{}}
    */
-  static resetValidationFields({ errors, replace = false, searchStr = '', replaceStr = '' }) {
+  static resetValidationFields({
+    errors,
+    replace = false,
+    searchStr = '',
+    replaceStr = ''
+  }) {
     console.log(errors)
     const data = {};
     _.forOwn(errors, (value, key) => {

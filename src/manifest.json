@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Chrome Extension with React & Webpack",
-  "description": "A chrome extension boilerplate built with React 17, Webpack 5, and Webpack Dev Server 4",
+  "name": "SRA++",
+  "description": "A chrome extension to log work on SRA",
   "options_page": "options.html",
   "background": {
     "service_worker": "background.bundle.js"
@@ -28,13 +28,10 @@
   ],
   "permissions": [
     "tabs",
-    "activeTab",
-    "storage",
-    "scripting",
-    "<all_urls>"
+    "scripting"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "*://*.smartosc.com/*"
   ],
   "devtools_page": "devtools.html",
   "web_accessible_resources": [
