@@ -10,15 +10,39 @@
   background-color: #282c34;
 }
 
-.App-logo {
-  height: 30vmin;
-  pointer-events: none;
+.logo {
+  height: 30px;
+  width: 30px;
+}
+.title {
+  display: flex;
+  flex-wrap: nowrap;
+  text-align: center;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.text-title {
+  font-size: 17px;
+  font-weight: bold;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.select-option {
+  text-align: left;
+  color: #000000;
+}
+
+.react-select-container {
+  font-size: 12px;
+}
+.container {
+  width: 90%;
+}
+.error-message {
+  color: red;
+}
+
+button {
+  cursor: pointer;
 }
 
 .App-header {
@@ -26,17 +50,28 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  font-size: 14px;
   color: white;
 }
+.date-picker {
+  margin-top: 7px;
+  margin-bottom: 10px;
+}
+.select-option {
+  margin-top: 7px;
 
+}
 .App-link {
   color: #61dafb;
 }
 
+.go-to-sra {
+  margin-top: 20px;
+}
+
 .log-button{
   margin-top: 1rem;
+  height: 30px;
 }
 @keyframes App-logo-spin {
   from {
