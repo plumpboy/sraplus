@@ -18,14 +18,13 @@ const Popup = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [workType, setWorkType] = useState(null);
-  const [projectData, setProjectData] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [workOption, setWorkOption] = useState([]);
   const customStyles = {
     control: (styles) => ({
       ...styles,
-      height: 25,
-      minHeight: 25,
+      height: 28,
+      minHeight: 28,
     }),
     dropdownIndicator: (base) => ({
       ...base,
@@ -112,13 +111,6 @@ const Popup = () => {
         setWorkType('');
       });
 
-      getProjects(localStorageData.accessToken, {
-        userId: localStorageData?.userData?.id,
-        date: new Date().toISOString().split('T')[0],
-      }).then((data) => {
-        console.log(data);
-        setProjectData(data);
-      });
     }
   }, [localStorageData]);
 
@@ -161,11 +153,12 @@ const Popup = () => {
       const date = new Date(`${month}-02T00:00:00`);
       console.log('date', date);
       const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 2);
+      const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
       const now = new Date();
       console.log('firstDayOfMonth', firstDayOfMonth);
       // If you need the dates in 'yyyy-MM-dd' format
       const startDate = firstDayOfMonth.toISOString().split('T')[0];
-      const endDate = now.toISOString().split('T')[0];
+      const endDate = lastDayOfMonth > now ? now.toISOString().split('T')[0]: lastDayOfMonth.toISOString().split('T')[0];
       console.log('startDate', startDate);
       console.log('endDate', endDate);
       // TODO: Call API get timesheet overview
@@ -186,38 +179,32 @@ const Popup = () => {
           (!log.workLogs || log.workLogs?.totalHours < log.allocated?.totalHours)
         );
       });
+      // const workLogsList = timesheetOverview?.timesheetOverview;
       console.log('workLogsList', workLogsList);
-      const workLogsListFilter = [];
-      for (let i = 0; i < workLogsList.length; i++) {
-        for (let j = 0; j < workLogsList?.[i]?.allocated?.detail?.length; j++) {
-          workLogsListFilter.push({
-            ...workLogsList[i].allocated.detail[j],
-            logHours: workLogsList?.[i].workLogs ? Object.values(workLogsList?.[i]?.workLogs?.detail).find((data) => data.code === workLogsList[i].allocated.detail[j].code)?.hours: 0,
+      if(workLogsList.length > 0) {
+        for (let i = 0; i < workLogsList.length; i++) {
+          const res = await getProjects(localStorageData.accessToken, {
+            userId: localStorageData?.userData?.id,
             date: workLogsList[i].date,
           });
+          const allowcatedData = workLogsList?.[i]?.allocated?.detail;
+          for (let j = 0; j < allowcatedData?.length; j++) {
+            let workLogsData = [{
+              date: workLogsList[i].date,
+              description: null,
+              workHours:  workLogsList?.[i].workLogs ? allowcatedData[j].hours - Object.values(workLogsList?.[i]?.workLogs?.detail).find((data) => data.code === allowcatedData[j].code)?.hours : allowcatedData[j].hours,
+              typeOfWork: workType,
+              projectId: res.find((project) => project.code === allowcatedData[j].code)?.id,
+            }];
+            console.log('workLogsData', workLogsData)
+            await postWorkLogs(localStorageData.accessToken, {
+              workLogs: workLogsData,
+            })
+          }
+
         }
       }
 
-      console.log('workLogsListFilter', workLogsListFilter);
-
-      const workLogsData = workLogsListFilter.map((log) => {
-        return {
-          date: log.date,
-          description: null,
-          workHours: log.hours - log.logHours,
-          typeOfWork: workType,
-          projectId: projectData.find((project) => project.code === log.code).id,
-        };
-      });
-
-      if (workLogsData.length) {
-        // TODO: Call API post work logs
-        await postWorkLogs(localStorageData.accessToken, {
-          workLogs: workLogsData,
-        }).then((data) => {
-          console.log('data', data);
-        });
-      }
       setSuccessMessage('Log work successful!');
       chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
         chrome.tabs.update(tabs[0].id, { url: tabs[0].url });
