@@ -179,7 +179,6 @@ const Popup = () => {
           (!log.workLogs || log.workLogs?.totalHours < log.allocated?.totalHours)
         );
       });
-      // const workLogsList = timesheetOverview?.timesheetOverview;
       console.log('workLogsList', workLogsList);
       if(workLogsList.length > 0) {
         for (let i = 0; i < workLogsList.length; i++) {
@@ -189,17 +188,22 @@ const Popup = () => {
           });
           const allowcatedData = workLogsList?.[i]?.allocated?.detail;
           for (let j = 0; j < allowcatedData?.length; j++) {
+            const logHour = workLogsList?.[i].workLogs ? Object.values(workLogsList?.[i]?.workLogs?.detail).find((data) => data.code === allowcatedData[j].code)?.hours : 0;
+
             let workLogsData = [{
               date: workLogsList[i].date,
               description: null,
-              workHours:  workLogsList?.[i].workLogs ? allowcatedData[j].hours - Object.values(workLogsList?.[i]?.workLogs?.detail).find((data) => data.code === allowcatedData[j].code)?.hours : allowcatedData[j].hours,
+              workHours:  logHour ? allowcatedData[j]?.hours - logHour : allowcatedData[j]?.hours,
               typeOfWork: workType,
               projectId: res.find((project) => project.code === allowcatedData[j].code)?.id,
             }];
             console.log('workLogsData', workLogsData)
-            await postWorkLogs(localStorageData.accessToken, {
-              workLogs: workLogsData,
-            })
+            if(workLogsData[0].workHours > 0) {
+              await postWorkLogs(localStorageData.accessToken, {
+                workLogs: workLogsData,
+              })
+            }
+
           }
 
         }
